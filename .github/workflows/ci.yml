@@ -95,7 +95,7 @@ jobs:
 
       - name: Test Docker build
         run: |
-          docker build -t web-scraper:test .
+          docker build -f docker/Dockerfile -t web-scraper:test .
           docker run --rm web-scraper:test --help
 
   release:
@@ -121,8 +121,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ github.repository }}:latest .
-          docker build -t ${{ github.repository }}:${{ github.sha }} .
+          docker build -f docker/Dockerfile -t ${{ github.repository }}:latest .
+          docker build -f docker/Dockerfile -t ${{ github.repository }}:${{ github.sha }} .
 
       - name: Create release tag
         run: |
