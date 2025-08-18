@@ -1,0 +1,92 @@
+# Docker Compose for Universal Web Scraper
+version: '3.8'
+
+services:
+  # Production scraper
+  scraper:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: web-scraper
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - MAX_CONCURRENCY=2
+    volumes:
+      - ../seeds.txt:/app/seeds.txt:ro
+      - ../.env:/app/.env:ro
+    command: ["--file", "seeds.txt", "--parser", "auto"]
+    restart: unless-stopped
+    networks:
+      - scraper-network
+
+  # Development environment
+  scraper-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: development
+    container_name: web-scraper-dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    volumes:
+      - ../:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    command: ["--url", "https://example.com", "--parser", "generic-news"]
+    profiles:
+      - dev
+    networks:
+      - scraper-network
+
+  # Testing environment
+  scraper-test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: testing
+    container_name: web-scraper-test
+    environment:
+      - NODE_ENV=test
+    volumes:
+      - ../coverage:/app/coverage
+    profiles:
+      - test
+    networks:
+      - scraper-network
+
+  # Optional: Redis for queue management (future enhancement)
+  redis:
+    image: redis:7-alpine
+    container_name: scraper-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    profiles:
+      - redis
+    networks:
+      - scraper-network
+
+  # Optional: Monitoring dashboard (if storage is enabled)
+  dashboard:
+    image: nginx:alpine
+    container_name: scraper-dashboard
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    profiles:
+      - dashboard
+    networks:
+      - scraper-network
+
+volumes:
+  redis-data:
+
+networks:
+  scraper-network:
+    driver: bridge
