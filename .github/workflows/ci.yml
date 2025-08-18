@@ -36,6 +36,8 @@ jobs:
 
       - name: Run tests with coverage
         run: npm run test:ci
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -88,6 +90,8 @@ jobs:
 
       - name: Run full validation
         run: npm run validate
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
 
       - name: Test Docker build
         run: |
