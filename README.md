@@ -146,38 +146,51 @@ The framework automatically registers parsers found in `src/parsers/` directory,
 
 ## ⚡ Environment Configuration
 
-### Deployment Environments
+### Deployment Configuration
 
-The framework supports multiple deployment targets through configuration files:
-
-| Environment | File                      | Description                                |
-| ----------- | ------------------------- | ------------------------------------------ |
-| Development | `crawlee.json`            | Local development with minimal persistence |
-| Production  | `crawlee.production.json` | Full persistence and monitoring            |
-| Serverless  | `crawlee.lambda.json`     | AWS Lambda/Functions optimized             |
-
-```bash
-# Switch environments
-cp crawlee.production.json crawlee.json  # For production
-cp crawlee.lambda.json crawlee.json      # For serverless
-```
-
-### Key Configuration Options
+The framework uses a single `crawlee.json` configuration file optimized for all environments:
 
 ```json
 {
-  "persistStorage": false, // Disable for serverless environments
-  "logLevel": "INFO", // Control logging verbosity
-  "headless": true, // Browser display mode
-  "maxConcurrency": 2 // Concurrent request limit
+  "persistStorage": false,
+  "logLevel": "INFO"
 }
 ```
+
+This single configuration works perfectly for all deployment scenarios:
+
+**🎯 Universal Configuration Benefits:**
+
+- **Development**: Clean runs with no storage persistence
+- **Production**: Add `CRAWLEE_PERSIST_STORAGE=true` if storage needed
+- **Serverless**: Perfect as-is (no storage, minimal footprint)
+- **Docker**: Works in containers without modification
+
+### Environment Overrides
+
+Override configuration through environment variables when needed:
+
+```bash
+# Enable storage for production if needed
+export CRAWLEE_PERSIST_STORAGE=true
+export CRAWLEE_LOG_LEVEL=ERROR
+
+# Run with overrides
+npm start
+```
+
+### Key Configuration Benefits
+
+- **🚀 No storage by default** - Prevents disk bloat, perfect for serverless
+- **📊 Appropriate logging** - INFO level provides good visibility
+- **🔧 Environment flexibility** - Override via env vars when needed
+- **🐳 Docker-ready** - Works in containers without modification
 
 ### Serverless Deployment
 
 Optimized for AWS Lambda, Google Cloud Functions, and similar platforms:
 
-- Disabled filesystem persistence
+- No filesystem persistence required
 - Minimal logging overhead
 - Memory-efficient browser management
 - Environment variable configuration support

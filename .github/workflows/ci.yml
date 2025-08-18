@@ -36,6 +36,8 @@ jobs:
 
       - name: Run tests with coverage
         run: npm run test:ci
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -88,10 +90,12 @@ jobs:
 
       - name: Run full validation
         run: npm run validate
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
 
       - name: Test Docker build
         run: |
-          docker build -t web-scraper:test .
+          docker build -f docker/Dockerfile -t web-scraper:test .
           docker run --rm web-scraper:test --help
 
   release:
@@ -117,8 +121,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ${{ github.repository }}:latest .
-          docker build -t ${{ github.repository }}:${{ github.sha }} .
+          docker build -f docker/Dockerfile -t ${{ github.repository }}:latest .
+          docker build -f docker/Dockerfile -t ${{ github.repository }}:${{ github.sha }} .
 
       - name: Create release tag
         run: |

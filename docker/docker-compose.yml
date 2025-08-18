@@ -16,7 +16,7 @@ services:
     volumes:
       - ../seeds.txt:/app/seeds.txt:ro
       - ../.env:/app/.env:ro
-    command: ["--file", "seeds.txt", "--parser", "auto"]
+    command: ['--file', 'seeds.txt', '--parser', 'auto']
     restart: unless-stopped
     networks:
       - scraper-network
@@ -35,8 +35,8 @@ services:
       - ../:/app
       - /app/node_modules
     ports:
-      - "3000:3000"
-    command: ["--url", "https://example.com", "--parser", "generic-news"]
+      - '3000:3000'
+    command: ['--url', 'https://example.com', '--parser', 'generic-news']
     profiles:
       - dev
     networks:
@@ -63,7 +63,7 @@ services:
     image: redis:7-alpine
     container_name: scraper-redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis-data:/data
     profiles:
@@ -76,7 +76,7 @@ services:
     image: nginx:alpine
     container_name: scraper-dashboard
     ports:
-      - "8080:80"
+      - '8080:80'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     profiles:
