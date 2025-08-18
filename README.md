@@ -160,8 +160,9 @@ The framework uses a single `crawlee.json` configuration file optimized for all 
 This single configuration works perfectly for all deployment scenarios:
 
 **🎯 Universal Configuration Benefits:**
+
 - **Development**: Clean runs with no storage persistence
-- **Production**: Add `CRAWLEE_PERSIST_STORAGE=true` if storage needed  
+- **Production**: Add `CRAWLEE_PERSIST_STORAGE=true` if storage needed
 - **Serverless**: Perfect as-is (no storage, minimal footprint)
 - **Docker**: Works in containers without modification
 
