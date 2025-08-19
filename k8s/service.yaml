@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-scraper-service
+  namespace: web-scraper
+  labels:
+    app: universal-web-scraper
+spec:
+  selector:
+    app: universal-web-scraper
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: ClusterIP

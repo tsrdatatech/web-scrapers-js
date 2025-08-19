@@ -39,7 +39,7 @@ This project demonstrates:
 | **Logging**          | Pino                 | High-performance structured logging |
 | **Testing**          | Jest                 | Unit and integration testing        |
 | **Code Quality**     | ESLint + Prettier    | Automated code formatting & linting |
-| **Containerization** | Docker + Compose     | Multi-stage builds & orchestration  |
+| **Containerization** | Docker + Kubernetes  | Multi-stage builds & orchestration  |
 | **CI/CD**            | GitHub Actions       | Automated testing & deployment      |
 
 ## 🚀 Quick Start
@@ -99,6 +99,30 @@ make docker-test
 - **Testing Stage**: Isolated environment for CI/CD
 - **Production Stage**: Minimal runtime optimized for performance
 - **Security Features**: Non-root user, health checks, minimal attack surface
+
+## ☸️ Kubernetes Deployment
+
+Enterprise-ready Kubernetes manifests for cloud deployment:
+
+```bash
+# Deploy to Kubernetes cluster
+kubectl apply -f k8s/
+
+# Or use the convenience script
+./k8s/deploy.sh
+
+# Check deployment status
+kubectl get pods -n web-scraper
+kubectl logs -f deployment/web-scraper -n web-scraper
+```
+
+### Kubernetes Features
+
+- **Namespace Isolation** - Dedicated namespace for resource organization
+- **ConfigMap Management** - Environment configuration without secrets
+- **Resource Limits** - CPU/memory constraints for predictable performance
+- **Health Probes** - Liveness and readiness checks for reliability
+- **Service Discovery** - Internal networking and load balancing
 
 ## 🔧 Extending the Framework
 

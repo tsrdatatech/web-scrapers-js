@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-scraper
+  namespace: web-scraper
+  labels:
+    app: universal-web-scraper
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: universal-web-scraper
+  template:
+    metadata:
+      labels:
+        app: universal-web-scraper
+    spec:
+      containers:
+        - name: web-scraper
+          image: universal-web-scraper:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: web-scraper-config
+          resources:
+            requests:
+              memory: '256Mi'
+              cpu: '250m'
+            limits:
+              memory: '512Mi'
+              cpu: '500m'
+          livenessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "console.log('Health check passed')"
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command:
+                - node
+                - -e
+                - "console.log('Ready check passed')"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      restartPolicy: Always
