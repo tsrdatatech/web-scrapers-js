@@ -46,7 +46,11 @@ jobs:
       - name: Validate k8s manifests (dry-run)
         run: |
           kubectl version --client
-          kubectl apply --dry-run=client -f k8s/
+          # No live cluster => disable server-side schema fetch
+          for f in k8s/*.yaml; do
+            echo "Dry-run validating $f";
+            kubectl apply --dry-run=client --validate=false -f "$f";
+          done
 
       - name: Dry-run scraper execution (no network)
         run: |
