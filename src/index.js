@@ -90,14 +90,20 @@ async function main() {
   }
 
   const crawler = new PlaywrightCrawler(crawlerOptions)
-
-  await crawler.run(
-    seeds.map(seed => ({
-      url: seed.url,
-      userData: { parser: seed.parser },
-      label: seed.label,
-    }))
-  )
+  if (process.env.DRY_RUN === 'true') {
+    crawleeLog.info(
+      { event: 'dry_run', seedCount: seeds.length, seeds: seeds.slice(0, 5) },
+      'DRY_RUN enabled – skipping network crawling (showing up to 5 seeds)'
+    )
+  } else {
+    await crawler.run(
+      seeds.map(seed => ({
+        url: seed.url,
+        userData: { parser: seed.parser },
+        label: seed.label,
+      }))
+    )
+  }
 
   metrics.pagesTotal = seeds.length // simplistic; could be improved with router instrumentation
   const durationMs = Date.now() - metrics.startedAt
@@ -110,6 +116,7 @@ async function main() {
       parserOverride: cli.parser || null,
       seedFile,
       maxConcurrency: effectiveConcurrency,
+      dryRun: process.env.DRY_RUN === 'true',
     },
     'Run summary'
   )

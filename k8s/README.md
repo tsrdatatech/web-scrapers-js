@@ -57,6 +57,17 @@ Each run emits a structured JSON summary log line with `event=run_summary` (page
 kubectl logs job/<job-name> -n web-scraper | jq 'select(.event=="run_summary")'
 ```
 
+## Safe Demonstration (DRY_RUN)
+
+Set `DRY_RUN=true` to skip real network crawling and just log up to 5 planned seeds while still producing a run summary:
+
+```bash
+kubectl create job demo-dryrun --image=universal-web-scraper:latest -n web-scraper -- \
+  env DRY_RUN=true node src/index.js --parser=generic-news --seed-file=seeds-generic-news.txt
+```
+
+Summary log will include `"dryRun": true` and an extra `event="dry_run"` line.
+
 ## Cleanup
 
 Remove everything (fastest):
