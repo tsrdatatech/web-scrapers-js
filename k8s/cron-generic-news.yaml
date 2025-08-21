@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: web-scraper-generic-news
+  namespace: web-scraper
+  labels:
+    app: universal-web-scraper
+spec:
+  schedule: '0 * * * *' # hourly
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app: universal-web-scraper
+            parser: generic-news
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            fsGroup: 1001
+          containers:
+            - name: web-scraper
+              image: universal-web-scraper:latest
+              imagePullPolicy: IfNotPresent
+              args:
+                - '--parser=generic-news'
+                - '--seed-file=seeds-generic-news.txt'
+                - '--max-concurrency=6'
+              env:
+                - name: LOG_LEVEL
+                  valueFrom:
+                    configMapKeyRef:
+                      name: web-scraper-config
+                      key: LOG_LEVEL
+                - name: NODE_ENV
+                  valueFrom:
+                    configMapKeyRef:
+                      name: web-scraper-config
+                      key: NODE_ENV
+                - name: DEFAULT_PARSER
+                  valueFrom:
+                    configMapKeyRef:
+                      name: web-scraper-config
+                      key: DEFAULT_PARSER
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 512Mi
+                limits:
+                  cpu: '1'
+                  memory: 1Gi

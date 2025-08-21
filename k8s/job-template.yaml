@@ -1,0 +1,69 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: web-scraper-run
+  namespace: web-scraper
+  labels:
+    app: universal-web-scraper
+spec:
+  backoffLimit: 2
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: universal-web-scraper
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
+      containers:
+        - name: web-scraper
+          image: universal-web-scraper:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - '--parser=$(PARSER)'
+            - '--seed-file=$(SEED_FILE)'
+            - '--max-concurrency=$(MAX_CONCURRENCY)'
+          env:
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: LOG_LEVEL
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: NODE_ENV
+            - name: DEFAULT_PARSER
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: DEFAULT_PARSER
+            - name: MAX_CONCURRENCY
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: MAX_CONCURRENCY
+            - name: PARSER
+              value: 'generic-news'
+            - name: SEED_FILE
+              value: 'seeds.txt'
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          volumeMounts:
+            - name: seeds-files
+              mountPath: /app/seeds-extras
+      volumes:
+        - name: seeds-files
+          configMap:
+            name: web-scraper-seeds
+            optional: true

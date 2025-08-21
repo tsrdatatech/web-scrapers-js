@@ -1,0 +1,3 @@
+# Weibo seeds (example placeholder)
+# Format: url|label|parser
+https://weibo.com/|a[suda-data]|weibo

@@ -8,4 +8,5 @@ data:
   LOG_LEVEL: 'info'
   # Add your scraping configuration here
   DEFAULT_PARSER: 'generic-news'
-  MAX_CONCURRENT_REQUESTS: '5'
+  # Concurrency used if neither CLI arg --max-concurrency nor env provided on Job/CronJob
+  MAX_CONCURRENCY: '5'

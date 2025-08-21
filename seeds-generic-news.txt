@@ -1,0 +1,4 @@
+# Generic news seeds (label is a CSS selector to discover article links)
+# Format: url|label|parser(optional overrides default parser)
+https://news.ycombinator.com/|a.storylink|generic-news
+https://www.bbc.com/news|a.gs-c-promo-heading|generic-news

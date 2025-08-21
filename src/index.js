@@ -7,12 +7,42 @@ import { resolveSeeds } from './core/seeds.js'
 import { crawleeLog } from './core/logger.js'
 import { createProxyConfiguration } from './core/proxy-config.js'
 
+function parseArgs(argv) {
+  const args = {
+    parser: undefined,
+    seedFile: undefined,
+    maxConcurrency: undefined,
+  }
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i]
+    if (a.startsWith('--parser=')) args.parser = a.split('=')[1]
+    else if (a.startsWith('--seed-file=')) args.seedFile = a.split('=')[1]
+    else if (a.startsWith('--max-concurrency=')) {
+      const v = Number(a.split('=')[1])
+      if (!Number.isNaN(v)) args.maxConcurrency = v
+    }
+  }
+  return args
+}
+
 async function main() {
-  const seedFile = process.env.SEEDS_FILE || 'seeds.txt'
+  const cli = parseArgs(process.argv)
+  const seedFile =
+    cli.seedFile ||
+    process.env.SEED_FILE ||
+    process.env.SEEDS_FILE ||
+    'seeds.txt'
   const registry = await createParserRegistry()
   const manager = createParserManager(registry)
   const router = buildRouter({ registry, manager })
   const seeds = await resolveSeeds({ file: seedFile })
+
+  // If parser override provided, apply to all seeds without a parser
+  if (cli.parser) {
+    for (const s of seeds) {
+      s.parser = cli.parser
+    }
+  }
 
   const proxyConfiguration = await createProxyConfiguration()
 
@@ -20,12 +50,20 @@ async function main() {
     crawleeLog.info('Proxy configuration enabled')
   }
 
+  const effectiveConcurrency =
+    cli.maxConcurrency ||
+    (process.env.MAX_CONCURRENCY ? Number(process.env.MAX_CONCURRENCY) : 2)
+
+  const metrics = {
+    startedAt: Date.now(),
+    pagesTotal: 0,
+    failures: 0,
+  }
+
   const crawlerOptions = {
     log: crawleeLog,
     requestHandler: router,
-    maxConcurrency: process.env.MAX_CONCURRENCY
-      ? Number(process.env.MAX_CONCURRENCY)
-      : 2,
+    maxConcurrency: effectiveConcurrency,
     requestHandlerTimeoutSecs: 120,
     preNavigationHooks: [
       async ({ request: _request, page }, _gotoOptions) => {
@@ -41,6 +79,7 @@ async function main() {
       },
     ],
     failedRequestHandler: async ({ request, error }) => {
+      metrics.failures++
       crawleeLog.error(`Request failed for ${request.url}: ${error.message}`)
     },
   }
@@ -58,6 +97,21 @@ async function main() {
       userData: { parser: seed.parser },
       label: seed.label,
     }))
+  )
+
+  metrics.pagesTotal = seeds.length // simplistic; could be improved with router instrumentation
+  const durationMs = Date.now() - metrics.startedAt
+  crawleeLog.info(
+    {
+      event: 'run_summary',
+      pagesTotal: metrics.pagesTotal,
+      failures: metrics.failures,
+      durationMs,
+      parserOverride: cli.parser || null,
+      seedFile,
+      maxConcurrency: effectiveConcurrency,
+    },
+    'Run summary'
   )
 }
 
