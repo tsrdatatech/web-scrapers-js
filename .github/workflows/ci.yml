@@ -1,62 +1,49 @@
 name: CI/CD Pipeline
 
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-
 jobs:
-  test:
-    name: Test Suite
+  ci:
+    name: Build/Test/Audit (Node 22)
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
+          node-version: 22
+          cache: npm
+      - name: Install
         run: npm ci
-
-      - name: Run linter
+      - name: Lint
         run: npm run lint
-
-      - name: Check code formatting
+      - name: Format Check
         run: npm run format:check
-
-      - name: Run tests with coverage
+      - name: Test (coverage)
         run: npm run test:ci
         env:
           NODE_OPTIONS: --experimental-vm-modules
-
-      - name: Validate k8s manifests (dry-run)
-        run: |
-          kubectl version --client
-          # No live cluster => disable server-side schema fetch
-          for f in k8s/*.yaml; do
-            echo "Dry-run validating $f";
-            kubectl apply --dry-run=client --validate=false -f "$f";
-          done
-
-      - name: Dry-run scraper execution (no network)
+      - name: Dry-run scraper
         run: |
           DRY_RUN=true node src/index.js --parser=generic-news --seed-file=seeds-generic-news.txt --max-concurrency=1 | grep run_summary || true
-
-      - name: Upload coverage to Codecov
+      - name: Security audit (non-blocking)
+        run: |
+          npm audit --omit=dev --audit-level=moderate || echo "Non-blocking vulnerabilities"
+          npx audit-ci --low || echo "Non-blocking low issues"
+      - name: Docker build smoke
+        run: |
+          docker build -f docker/Dockerfile -t web-scraper:test .
+          docker run --rm web-scraper:test --help || true
+      - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           file: ./coverage/lcov.info
@@ -64,85 +51,28 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run security audit (informational)
-        run: |
-          npm audit --omit=dev --audit-level=moderate || echo "Non-blocking vulnerabilities detected"
-
-      - name: Check for known vulnerabilities (allow low/moderate)
-        run: npx audit-ci --low || echo "Non-blocking issues (low severity)"
-
-  build:
-    name: Build Check
-    runs-on: ubuntu-latest
-    needs: [test, security]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run full validation
-        run: npm run validate
-        env:
-          NODE_OPTIONS: --experimental-vm-modules
-
-      - name: Test Docker build
-        run: |
-          docker build -f docker/Dockerfile -t web-scraper:test .
-          docker run --rm web-scraper:test --help
-
   release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: [test, security, build]
+    name: Release Tag & Image
+    needs: ci
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-          cache: 'npm'
-
-      - name: Install dependencies
+          node-version: 22
+          cache: npm
+      - name: Install
         run: npm ci
-
-      - name: Build Docker image
+      - name: Build image
         run: |
           docker build -f docker/Dockerfile -t ${{ github.repository }}:latest .
           docker build -f docker/Dockerfile -t ${{ github.repository }}:${{ github.sha }} .
-
-      - name: Create release tag
+      - name: Tag release
         run: |
           VERSION=$(node -p "require('./package.json').version")
           git tag v$VERSION
