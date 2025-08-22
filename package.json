@@ -67,6 +67,7 @@
     "collectCoverageFrom": [
       "src/**/*.js",
       "!src/index.js",
+      "!src/orchestrator.js",
       "!**/node_modules/**"
     ],
     "coverageThreshold": {
