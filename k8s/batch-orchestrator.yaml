@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-orchestrator
+  namespace: web-scraper
+  labels:
+    app: batch-orchestrator
+    component: orchestration
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: batch-orchestrator
+  template:
+    metadata:
+      labels:
+        app: batch-orchestrator
+        component: orchestration
+    spec:
+      serviceAccountName: scraper-orchestrator
+      containers:
+        - name: orchestrator
+          image: web-scraper:latest
+          command: ['node', 'src/orchestrator.js']
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: BATCH_SIZE
+            - name: MAX_CONCURRENT_JOBS
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: MAX_CONCURRENT_JOBS
+            - name: JOB_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: web-scraper-config
+                  key: JOB_TIMEOUT
+          resources:
+            requests:
+              memory: '128Mi'
+              cpu: '100m'
+            limits:
+              memory: '256Mi'
+              cpu: '200m'
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: temp
+              mountPath: /tmp
+            - name: work
+              mountPath: /app/work
+      volumes:
+        - name: temp
+          emptyDir: {}
+        - name: work
+          emptyDir: {}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: scraper-orchestrator
+  namespace: web-scraper
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: web-scraper
+  name: job-manager
+rules:
+  - apiGroups: ['batch']
+    resources: ['jobs']
+    verbs: ['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']
+  - apiGroups: ['']
+    resources: ['pods']
+    verbs: ['get', 'list', 'watch']
+  - apiGroups: ['']
+    resources: ['events']
+    verbs: ['get', 'list', 'watch']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: orchestrator-job-manager
+  namespace: web-scraper
+subjects:
+  - kind: ServiceAccount
+    name: scraper-orchestrator
+    namespace: web-scraper
+roleRef:
+  kind: Role
+  name: job-manager
+  apiGroup: rbac.authorization.k8s.io

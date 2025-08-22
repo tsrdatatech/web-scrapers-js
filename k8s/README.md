@@ -1,22 +1,42 @@
-# Kubernetes Orchestrated Scraper (Jobs & CronJobs)
+# Kubernetes Orchestrated Scraper (Jobs, CronJobs & Batch Orchestrator)
 
-This directory showcases multiple Kubernetes patterns (Namespace, ConfigMap, on-demand Job, scheduled CronJobs, optional Deployment) for the Universal Web Scraper.
+This directory showcases multiple Kubernetes patterns for the Universal Web Scraper:
 
-## Quick Start (Local Cluster)
+1. **CronJobs** - Scheduled scraping (hourly, daily, etc.)
+2. **Ad-hoc Jobs** - Manual runs with custom parameters
+3. **Batch Orchestrator** - High-scale URL processing mimicking AWS Step Functions + Batch
+
+## Quick Start Options
+
+### Option A: CronJobs (Simple Scheduled)
 
 ```bash
-# Create / update namespace + config + scheduled jobs
+# Deploy namespace, config, and CronJobs
 kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml \
    -f k8s/cron-generic-news.yaml -f k8s/cron-weibo.yaml
 
-# (Optional) Apply job template for ad-hoc runs
-kubectl apply -f k8s/job-template.yaml
-
-# Trigger a one-off run overriding env/args
+# Trigger manual run
 kubectl create job --from=cronjob/web-scraper-generic-news manual-generic-$(date +%s) -n web-scraper
 
-# Watch
+# Monitor
 kubectl get jobs,pods -n web-scraper
+```
+
+### Option B: Batch Orchestrator (High-Scale)
+
+```bash
+# Deploy orchestrator (automatically processes thousands of URLs)
+kubectl apply -f k8s/namespace.yaml -f k8s/configmap.yaml -f k8s/batch-orchestrator.yaml
+
+# The orchestrator automatically:
+# - Loads URLs from seed file
+# - Batches into groups of 5 URLs per job
+# - Manages up to 20 concurrent jobs
+# - Monitors pass/fail status like Step Functions
+# - Provides comprehensive metrics and retry logic
+
+# Monitor orchestration
+kubectl logs -f deployment/batch-orchestrator -n web-scraper
 ```
 
 ## Files

@@ -157,3 +157,22 @@ jobs-clean: ## Delete successful Jobs
 
 nuke: ## Delete entire namespace (DANGER)
 	kubectl delete namespace $(NAMESPACE) --ignore-not-found
+
+# Batch Orchestration Targets
+k8s-batch-deploy: ## Deploy batch orchestrator
+	kubectl apply -f k8s/namespace.yaml
+	kubectl apply -f k8s/configmap.yaml
+	kubectl apply -f k8s/batch-orchestrator.yaml
+	@echo "Batch orchestrator deployed. Check status with: kubectl get pods -n $(NAMESPACE)"
+
+k8s-batch-test: ## Run batch orchestration test (DRY_RUN)
+	kubectl create job batch-test-$$RANDOM --from=deployment/batch-orchestrator -n $(NAMESPACE)
+	kubectl wait --for=condition=complete --timeout=300s job/batch-test-* -n $(NAMESPACE)
+	kubectl logs job/batch-test-* -n $(NAMESPACE)
+	kubectl delete job batch-test-* -n $(NAMESPACE)
+
+k8s-batch-logs: ## Monitor batch orchestrator logs
+	kubectl logs -f deployment/batch-orchestrator -n $(NAMESPACE)
+
+k8s-batch-cleanup: ## Clean up batch orchestrator
+	kubectl delete -f k8s/batch-orchestrator.yaml --ignore-not-found=true

@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@extractus/article-extractor": "^8.0.19",
+    "@kubernetes/client-node": "^1.3.0",
     "crawlee": "^3.9.2",
     "crawlee-pino": "^0.2.1",
     "dotenv": "^16.4.5",

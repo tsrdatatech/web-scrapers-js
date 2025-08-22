@@ -8,16 +8,18 @@ import { crawleeLog } from './core/logger.js'
 import { createProxyConfiguration } from './core/proxy-config.js'
 
 function parseArgs(argv) {
-  const args = {
-    parser: undefined,
-    seedFile: undefined,
-    maxConcurrency: undefined,
-  }
-  for (let i = 2; i < argv.length; i++) {
-    const a = argv[i]
-    if (a.startsWith('--parser=')) args.parser = a.split('=')[1]
-    else if (a.startsWith('--seed-file=')) args.seedFile = a.split('=')[1]
-    else if (a.startsWith('--max-concurrency=')) {
+  const args = {}
+  for (const a of argv) {
+    if (a.startsWith('--parser=')) {
+      args.parser = a.split('=')[1]
+    } else if (a.startsWith('--seed-file=')) {
+      args.seedFile = a.split('=')[1]
+    } else if (a.startsWith('--urls=')) {
+      args.urls = a
+        .split('=')[1]
+        .split(',')
+        .map(url => url.trim())
+    } else if (a.startsWith('--max-concurrency=')) {
       const v = Number(a.split('=')[1])
       if (!Number.isNaN(v)) args.maxConcurrency = v
     }
@@ -27,20 +29,37 @@ function parseArgs(argv) {
 
 async function main() {
   const cli = parseArgs(process.argv)
-  const seedFile =
-    cli.seedFile ||
-    process.env.SEED_FILE ||
-    process.env.SEEDS_FILE ||
-    'seeds.txt'
   const registry = await createParserRegistry()
   const manager = createParserManager(registry)
   const router = buildRouter({ registry, manager })
-  const seeds = await resolveSeeds({ file: seedFile })
 
-  // If parser override provided, apply to all seeds without a parser
-  if (cli.parser) {
-    for (const s of seeds) {
-      s.parser = cli.parser
+  let seeds
+
+  // Support direct URL list or seed file
+  if (cli.urls && cli.urls.length > 0) {
+    // Create seeds from URL list
+    seeds = cli.urls.map(url => ({
+      url,
+      parser: cli.parser || process.env.DEFAULT_PARSER || 'generic-news',
+    }))
+    crawleeLog.info(
+      { urlCount: seeds.length, parser: seeds[0].parser },
+      'Using URLs from command line'
+    )
+  } else {
+    // Load from seed file
+    const seedFile =
+      cli.seedFile ||
+      process.env.SEED_FILE ||
+      process.env.SEEDS_FILE ||
+      'seeds.txt'
+    seeds = await resolveSeeds({ file: seedFile })
+
+    // If parser override provided, apply to all seeds without a parser
+    if (cli.parser) {
+      for (const s of seeds) {
+        s.parser = cli.parser
+      }
     }
   }
 
@@ -114,7 +133,13 @@ async function main() {
       failures: metrics.failures,
       durationMs,
       parserOverride: cli.parser || null,
-      seedFile,
+      sourceType: cli.urls ? 'urls' : 'file',
+      sourceFile: cli.urls
+        ? null
+        : cli.seedFile ||
+          process.env.SEED_FILE ||
+          process.env.SEEDS_FILE ||
+          'seeds.txt',
       maxConcurrency: effectiveConcurrency,
       dryRun: process.env.DRY_RUN === 'true',
     },
