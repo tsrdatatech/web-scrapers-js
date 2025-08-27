@@ -6,10 +6,10 @@ services:
     container_name: web-scrapers-cassandra
     hostname: cassandra
     ports:
-      - "9042:9042"
-      - "7000:7000"
-      - "7001:7001"
-      - "7199:7199"
+      - '9042:9042'
+      - '7000:7000'
+      - '7001:7001'
+      - '7199:7199'
     environment:
       - CASSANDRA_CLUSTER_NAME=WebScrapersCluster
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
@@ -21,7 +21,7 @@ services:
       - cassandra_data:/var/lib/cassandra
       - ./docker/cassandra.yaml:/etc/cassandra/cassandra.yaml
     healthcheck:
-      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      test: ['CMD', 'cqlsh', '-e', 'describe keyspaces']
       interval: 30s
       timeout: 10s
       retries: 5
