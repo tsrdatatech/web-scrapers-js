@@ -1,4 +1,7 @@
-import StorageFactory from '../storage/index.js'
+import StorageFactory from '../src/storage/index.js'
+import { basePino } from '../src/core/logger.js'
+
+const logger = basePino.child({ component: 'cassandra-utils' })
 
 async function seedCassandra() {
   const storageFactory = new StorageFactory()
@@ -34,19 +37,19 @@ async function seedCassandra() {
       metadata: { source_type: 'social', platform: 'weibo' },
     })
 
-    console.log('✅ Successfully seeded Cassandra with initial URLs')
-    console.log(`📊 Added ${genericNewsUrls.length} generic-news seeds`)
-    console.log(`📊 Added ${weiboUrls.length} weibo seeds`)
+    logger.info('✅ Successfully seeded Cassandra with initial URLs')
+    logger.info(`📊 Added ${genericNewsUrls.length} generic-news seeds`)
+    logger.info(`📊 Added ${weiboUrls.length} weibo seeds`)
 
     // Show stats
     const newsStats = await storage.seeds.getSeedStats('generic-news')
     const weiboStats = await storage.seeds.getSeedStats('weibo')
 
-    console.log('\n📈 Seed Statistics:')
-    console.log('Generic News:', newsStats)
-    console.log('Weibo:', weiboStats)
+    logger.info('📈 Seed Statistics:')
+    logger.info({ newsStats }, 'Generic News')
+    logger.info({ weiboStats }, 'Weibo')
   } catch (error) {
-    console.error('❌ Failed to seed Cassandra:', error.message)
+    logger.error({ err: error }, '❌ Failed to seed Cassandra')
     throw error
   } finally {
     await storageFactory.shutdown()
@@ -59,36 +62,36 @@ async function showCassandraStatus() {
   try {
     const storage = await storageFactory.createCassandraStorage()
 
-    console.log('🔍 Cassandra Status:')
+    logger.info('🔍 Cassandra Status:')
 
     // Check seed counts
     const parsers = ['generic-news', 'weibo']
     for (const parser of parsers) {
       const seeds = await storage.seeds.getSeedUrls(parser, { limit: 1000 })
       const stats = await storage.seeds.getSeedStats(parser)
-      console.log(`\n📋 ${parser}:`)
-      console.log(`  Active seeds: ${seeds.length}`)
-      console.log('  Stats:', stats)
+      logger.info(`📋 ${parser}:`)
+      logger.info(`  Active seeds: ${seeds.length}`)
+      logger.info({ stats }, '  Stats')
     }
 
     // Check article counts
     const genericMetrics = await storage.articles.getMetrics('generic-news', 7)
     const weiboMetrics = await storage.articles.getMetrics('weibo', 7)
 
-    console.log('\n📊 Article Metrics (last 7 days):')
-    console.log(`Generic News: ${genericMetrics.length} data points`)
-    console.log(`Weibo: ${weiboMetrics.length} data points`)
+    logger.info('📊 Article Metrics (last 7 days):')
+    logger.info(`Generic News: ${genericMetrics.length} data points`)
+    logger.info(`Weibo: ${weiboMetrics.length} data points`)
 
     // Check duplicate stats
     const dupStats = await storage.articles.getDuplicateStats(null, 7)
-    console.log('\n🔄 Duplicate Statistics:')
+    logger.info('🔄 Duplicate Statistics:')
     dupStats.forEach(stat => {
-      console.log(
+      logger.info(
         `  ${stat.domain} (${stat.parserId}): ${stat.totalArticles} articles`
       )
     })
   } catch (error) {
-    console.error('❌ Failed to get Cassandra status:', error.message)
+    logger.error({ err: error }, '❌ Failed to get Cassandra status')
     throw error
   } finally {
     await storageFactory.shutdown()
@@ -100,15 +103,19 @@ const command = process.argv[2]
 
 switch (command) {
   case 'seed':
-    seedCassandra().catch(console.error)
+    seedCassandra().catch(error =>
+      logger.error({ err: error }, 'Seed command failed')
+    )
     break
   case 'status':
-    showCassandraStatus().catch(console.error)
+    showCassandraStatus().catch(error =>
+      logger.error({ err: error }, 'Status command failed')
+    )
     break
   default:
-    console.log('Usage: node scripts/cassandra-utils.js [seed|status]')
-    console.log('')
-    console.log('Commands:')
-    console.log('  seed   - Populate Cassandra with initial seed URLs')
-    console.log('  status - Show current Cassandra data statistics')
+    logger.info('Usage: node scripts/cassandra-utils.js [seed|status]')
+    logger.info('')
+    logger.info('Commands:')
+    logger.info('  seed   - Populate Cassandra with initial seed URLs')
+    logger.info('  status - Show current Cassandra data statistics')
 }
