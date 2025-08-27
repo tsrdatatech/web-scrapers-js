@@ -11,6 +11,12 @@ data:
   # Concurrency used if neither CLI arg --max-concurrency nor env provided on Job/CronJob
   MAX_CONCURRENCY: '5'
 
+  # Cassandra connection settings
+  CASSANDRA_CONTACT_POINTS: 'cassandra.web-scrapers.svc.cluster.local'
+  CASSANDRA_PORT: '9042'
+  CASSANDRA_KEYSPACE: 'web_scrapers'
+  CASSANDRA_LOCAL_DC: 'DC1-K8Demo'
+
   # Batch orchestration settings
   BATCH_SIZE: '5'
   MAX_CONCURRENT_JOBS: '20'

@@ -25,7 +25,8 @@ This project demonstrates:
 - **✅ Type-Safe Validation** - Runtime schema validation with Zod
 - **📊 Observability** - Structured JSON logging with Pino
 - **🔄 Resilient Processing** - Built-in queue management, retries, and error handling
-- **🐳 Containerized** - Multi-stage Docker builds optimized for production
+- **�️ Database Integration** - Cassandra NoSQL for distributed storage, deduplication, and analytics
+- **�🐳 Containerized** - Multi-stage Docker builds optimized for production
 - **🧪 Test-Driven** - Comprehensive Jest test suite with mocking
 - **🔧 DevOps Ready** - GitHub Actions CI/CD with automated testing and security scanning
 
@@ -53,6 +54,11 @@ npm start -- --url https://example.com --parser generic-news
 
 # Process multiple URLs from file
 npm start -- --file seeds.txt --parser auto
+
+# With Cassandra database integration (optional)
+make cassandra-dev                    # Start Cassandra locally
+node scripts/cassandra-utils.js seed # Populate initial data
+npm start -- --parser generic-news   # Uses database + file fallback
 ```
 
 ### Example Usage

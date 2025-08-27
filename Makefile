@@ -176,3 +176,43 @@ k8s-batch-logs: ## Monitor batch orchestrator logs
 
 k8s-batch-cleanup: ## Clean up batch orchestrator
 	kubectl delete -f k8s/batch-orchestrator.yaml --ignore-not-found=true
+
+# --------------------------------------------------
+# Cassandra Operations
+# --------------------------------------------------
+
+cassandra-dev: ## Start Cassandra in Docker for development
+	docker-compose -f docker/docker-compose.cassandra.yml up -d cassandra
+	@echo "Waiting for Cassandra to be ready..."
+	@until docker-compose -f docker/docker-compose.cassandra.yml exec -T cassandra cqlsh -e "describe keyspaces" > /dev/null 2>&1; do \
+		sleep 5; \
+		echo "Still waiting for Cassandra..."; \
+	done
+	@echo "✅ Cassandra is ready at localhost:9042"
+
+cassandra-dev-stop: ## Stop development Cassandra
+	docker-compose -f docker/docker-compose.cassandra.yml down
+
+cassandra-client: ## Connect to development Cassandra with CQL shell
+	docker-compose -f docker/docker-compose.cassandra.yml exec cassandra cqlsh
+
+cassandra-k8s: ## Deploy Cassandra StatefulSet to Kubernetes
+	kubectl apply -f k8s/cassandra-statefulset.yaml
+	@echo "Waiting for Cassandra pod to be ready..."
+	kubectl wait --for=condition=ready pod/cassandra-0 -n $(NAMESPACE) --timeout=300s
+	@echo "✅ Cassandra is ready in Kubernetes"
+
+cassandra-k8s-remove: ## Remove Cassandra from Kubernetes
+	kubectl delete -f k8s/cassandra-statefulset.yaml --ignore-not-found=true
+
+cassandra-seed: ## Populate Cassandra with initial seed data (requires running Cassandra)
+	node scripts/cassandra-utils.js seed
+
+cassandra-status: ## Show Cassandra database statistics
+	node scripts/cassandra-utils.js status
+
+cassandra-k8s-shell: ## Connect to Cassandra CQL shell in Kubernetes
+	kubectl exec -it cassandra-0 -n $(NAMESPACE) -- cqlsh
+
+cassandra-k8s-logs: ## View Cassandra logs in Kubernetes
+	kubectl logs -f cassandra-0 -n $(NAMESPACE)

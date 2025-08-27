@@ -1,7 +1,7 @@
 import { createPlaywrightRouter } from 'crawlee'
 import { pinoLogger } from './core/logger.js'
 
-export function buildRouter({ registry: _registry, manager }) {
+export function buildRouter({ registry: _registry, manager, storage }) {
   const router = createPlaywrightRouter()
 
   // Default handler: enqueue links from start URLs using provided selector
@@ -43,11 +43,40 @@ export function buildRouter({ registry: _registry, manager }) {
     try {
       const result = await parser.parse(page, { request, page, log, parser })
       if (result) {
+        // Store in Cassandra if available
+        let storeResult = null
+        if (storage && storage.articles) {
+          try {
+            storeResult = await storage.articles.storeArticle({
+              ...result,
+              parser_id: parser.id,
+              url: request.url,
+            })
+          } catch (storageError) {
+            log.error(
+              { err: storageError },
+              'Failed to store article in database'
+            )
+          }
+        }
+
         const dataLogger = pinoLogger.child({
           event: 'parsed',
           parser: parser.id,
+          ...(storeResult || {}),
         })
-        dataLogger.info({ url: request.url, data: result })
+
+        dataLogger.info({
+          url: request.url,
+          data: result,
+          ...(storeResult
+            ? {
+                stored: true,
+                changeType: storeResult.changeType,
+                urlHash: storeResult.urlHash,
+              }
+            : { stored: false }),
+        })
       }
     } catch (err) {
       pinoLogger.error(

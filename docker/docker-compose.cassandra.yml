@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  cassandra:
+    image: cassandra:4.1
+    container_name: web-scrapers-cassandra
+    hostname: cassandra
+    ports:
+      - "9042:9042"
+      - "7000:7000"
+      - "7001:7001"
+      - "7199:7199"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=WebScrapersCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=datacenter1
+      - CASSANDRA_RACK=rack1
+      - HEAP_NEWSIZE=128M
+      - MAX_HEAP_SIZE=1024M
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      - ./docker/cassandra.yaml:/etc/cassandra/cassandra.yaml
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - scraper-network
+
+  # Optional: Development container with CQL shell access
+  cassandra-client:
+    image: cassandra:4.1
+    container_name: web-scrapers-cql
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    environment:
+      - CQLSH_HOST=cassandra
+      - CQLSH_PORT=9042
+    command: |
+      bash -c "
+        echo 'Waiting for Cassandra to be ready...'
+        until cqlsh cassandra 9042 -e 'describe keyspaces'; do
+          echo 'Cassandra not ready, waiting...'
+          sleep 5
+        done
+        echo 'Cassandra is ready!'
+        echo 'To connect: docker-compose exec cassandra-client cqlsh cassandra'
+        tail -f /dev/null
+      "
+    networks:
+      - scraper-network
+    profiles:
+      - dev
+
+volumes:
+  cassandra_data:
+    driver: local
+
+networks:
+  scraper-network:
+    driver: bridge

@@ -31,7 +31,24 @@ async function main() {
   const cli = parseArgs(process.argv)
   const registry = await createParserRegistry()
   const manager = createParserManager(registry)
-  const router = buildRouter({ registry, manager })
+
+  // Initialize storage (Cassandra if configured)
+  let storage = null
+  if (process.env.CASSANDRA_ENABLED === 'true' || process.env.CASSANDRA_HOSTS) {
+    try {
+      const { StorageFactory } = await import('./storage/index.js')
+      const storageFactory = new StorageFactory()
+      storage = await storageFactory.createCassandraStorage()
+      crawleeLog.info('Cassandra storage initialized')
+    } catch (error) {
+      crawleeLog.warn(
+        { error: error.message },
+        'Failed to initialize Cassandra, using file-based seeds'
+      )
+    }
+  }
+
+  const router = buildRouter({ registry, manager, storage })
 
   let seeds
 
@@ -47,13 +64,16 @@ async function main() {
       'Using URLs from command line'
     )
   } else {
-    // Load from seed file
-    const seedFile =
-      cli.seedFile ||
-      process.env.SEED_FILE ||
-      process.env.SEEDS_FILE ||
-      'seeds.txt'
-    seeds = await resolveSeeds({ file: seedFile })
+    // Load from Cassandra or seed file
+    seeds = await resolveSeeds({
+      file:
+        cli.seedFile ||
+        process.env.SEED_FILE ||
+        process.env.SEEDS_FILE ||
+        'seeds.txt',
+      storage,
+      parser: cli.parser,
+    })
 
     // If parser override provided, apply to all seeds without a parser
     if (cli.parser) {
@@ -62,7 +82,6 @@ async function main() {
       }
     }
   }
-
   const proxyConfiguration = await createProxyConfiguration()
 
   if (proxyConfiguration) {

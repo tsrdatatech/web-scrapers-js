@@ -10,8 +10,7 @@ describe('Seeds Resolution', () => {
       expect(seeds).toHaveLength(1)
       expect(seeds[0]).toEqual({
         url: 'https://example.com',
-        label: undefined,
-        parser: undefined,
+        parser: 'generic-news',
       })
     })
 
@@ -26,7 +25,6 @@ describe('Seeds Resolution', () => {
       expect(seeds).toHaveLength(1)
       expect(seeds[0]).toEqual({
         url: 'https://example.com',
-        label: 'a.link',
         parser: 'news',
       })
     })
@@ -37,7 +35,7 @@ describe('Seeds Resolution', () => {
       const args = {}
 
       await expect(resolveSeeds(args)).rejects.toThrow(
-        'Provide --url or --file'
+        'No seed source provided (url, storage, or file)'
       )
     })
   })
