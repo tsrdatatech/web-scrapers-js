@@ -6,6 +6,13 @@ import { describe, test, expect, beforeEach, jest } from '@jest/globals'
 import GenericNewsParser from '../src/parsers/genericNewsParser.js'
 import WeiboParser from '../src/parsers/weiboParser.js'
 
+// Mock the article extractor to prevent real HTTP requests
+jest.mock('@extractus/article-extractor', () => ({
+  extract: jest
+    .fn()
+    .mockRejectedValue(new Error('Request failed with error code 404')),
+}))
+
 // Mock playwright page object
 const createMockPage = (overrides = {}) => ({
   waitForLoadState: jest.fn().mockResolvedValue(),
@@ -81,7 +88,7 @@ describe('GenericNewsParser', () => {
       expect(result.title).toBe('Breaking News: Important Story')
       expect(result.url).toBe('https://example.com/news/story')
       expect(result.source).toBe('example.com')
-    })
+    }, 10000)
 
     test('should handle parsing errors gracefully', async () => {
       const waitForLoadStateMock = jest

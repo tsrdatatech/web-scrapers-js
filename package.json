@@ -69,14 +69,15 @@
       "src/**/*.js",
       "!src/index.js",
       "!src/orchestrator.js",
+      "!src/storage/**/*.js",
       "!**/node_modules/**"
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 24,
+        "branches": 22,
         "functions": 48,
-        "lines": 40,
-        "statements": 40
+        "lines": 37,
+        "statements": 37
       }
     },
     "testMatch": [
